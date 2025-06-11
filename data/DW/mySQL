@@ -1,0 +1,103 @@
+-- =====================================================
+-- SPOTIFY ETL - MYSQL DATABASE SCHEMA
+-- =====================================================
+
+CREATE DATABASE IF NOT EXISTS spotify_analytics;
+USE spotify_analytics;
+
+-- =====================================================
+-- DIMENSION TABLES
+-- =====================================================
+
+-- Create Time Dimension
+CREATE TABLE IF NOT EXISTS dim_time (
+    time_id INT PRIMARY KEY,
+    ts TIMESTAMP NOT NULL,
+    date_full DATE NOT NULL,
+    day_of_week VARCHAR(10) NOT NULL,
+    hour INT NOT NULL,
+    INDEX idx_date_full (date_full),
+    INDEX idx_day_of_week (day_of_week),
+    INDEX idx_hour (hour)
+);
+
+-- Create Artist Dimension
+CREATE TABLE IF NOT EXISTS dim_artist (
+    artist_id INT PRIMARY KEY,
+    artist_name VARCHAR(500) NOT NULL,
+    INDEX idx_artist_name (artist_name(100))
+);
+
+-- Create Album Dimension
+CREATE TABLE IF NOT EXISTS dim_album (
+    album_id INT PRIMARY KEY,
+    album_name VARCHAR(500) NOT NULL,
+    artist_id INT NOT NULL,
+    INDEX idx_album_name (album_name(100)),
+    INDEX idx_artist_id (artist_id),
+    FOREIGN KEY (artist_id) REFERENCES dim_artist(artist_id)
+);
+
+-- Create Track Dimension
+CREATE TABLE IF NOT EXISTS dim_track (
+    track_id VARCHAR(100) PRIMARY KEY,
+    track_name VARCHAR(500) NOT NULL,
+    image_url TEXT,
+    INDEX idx_track_name (track_name(100))
+);
+
+-- Create Platform Dimension
+CREATE TABLE IF NOT EXISTS dim_platform (
+    platform_id INT PRIMARY KEY,
+    platform VARCHAR(100) NOT NULL,
+    INDEX idx_platform (platform)
+);
+
+-- Create Reason Dimension
+CREATE TABLE IF NOT EXISTS dim_reason (
+    reason_id INT PRIMARY KEY,
+    reason_start VARCHAR(100) NOT NULL,
+    reason_end VARCHAR(100) NOT NULL,
+    INDEX idx_reason_start (reason_start),
+    INDEX idx_reason_end (reason_end)
+);
+
+-- =====================================================
+-- FACT TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS fact_streams (
+    stream_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    time_id INT NOT NULL,
+    track_id VARCHAR(100) NOT NULL,
+    artist_id INT NOT NULL,
+    album_id INT NOT NULL,
+    platform_id INT NOT NULL,
+    reason_id INT NOT NULL,
+    ms_played INT NOT NULL,
+    shuffle BOOLEAN NOT NULL,
+    skipped BOOLEAN NOT NULL,
+    
+    -- Indexes for performance
+    INDEX idx_time_id (time_id),
+    INDEX idx_track_id (track_id),
+    INDEX idx_artist_id (artist_id),
+    INDEX idx_album_id (album_id),
+    INDEX idx_platform_id (platform_id),
+    INDEX idx_reason_id (reason_id),
+    INDEX idx_ms_played (ms_played),
+    INDEX idx_shuffle (shuffle),
+    INDEX idx_skipped (skipped),
+    
+    -- Composite indexes for common queries
+    INDEX idx_time_artist (time_id, artist_id),
+    INDEX idx_time_track (time_id, track_id),
+    INDEX idx_artist_track (artist_id, track_id),
+    
+    -- Foreign key constraints
+    FOREIGN KEY (time_id) REFERENCES dim_time(time_id),
+    FOREIGN KEY (track_id) REFERENCES dim_track(track_id),
+    FOREIGN KEY (artist_id) REFERENCES dim_artist(artist_id),
+    FOREIGN KEY (album_id) REFERENCES dim_album(album_id),
+    FOREIGN KEY (platform_id) REFERENCES dim_platform(platform_id),
+    FOREIGN KEY (reason_id) REFERENCES dim_reason(reason_id)
+);
