@@ -1,0 +1,7 @@
+platform,platform_id
+android,1
+cast to device,2
+iOS,3
+mac,4
+web player,5
+windows,6
